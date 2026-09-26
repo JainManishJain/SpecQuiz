@@ -91,7 +91,7 @@ names (e.g. `CertificationController`, `CertificationService`, `AttemptService`)
 Clone the repository and move into the project directory:
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/JainManishJain/SpecQuiz
 cd SpecQuiz
 ```
 
