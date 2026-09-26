@@ -1,0 +1,75 @@
+# JSON Schema (draft-07), expressed in YAML.
+# Validate with any JSON-Schema validator that reads YAML, applying draft-07.
+$id: "specflow:phase:1-requirements"
+title: SpecFlow Requirements Artifact
+description: Contract for the Phase 1 (Requirements) output artifact.
+type: object
+additionalProperties: false
+required: [meta, overview, requirements, nonFunctionalRequirements, outOfScope]
+properties:
+  meta:
+    type: object
+    additionalProperties: false
+    required: [featureId, slug, title, phase, status, sourceArtifact]
+    properties:
+      featureId: { type: string, pattern: "^FEAT-[0-9]{3}$" }
+      slug: { type: string, pattern: "^[a-z0-9]+(-[a-z0-9]+)*$" }
+      title: { type: string, minLength: 3 }
+      phase: { const: requirements }
+      status: { enum: [draft, approved] }
+      sourceArtifact:
+        description: Prior artifact this was generated from. Null for phase 1.
+        type: [string, "null"]
+  overview:
+    type: string
+    minLength: 20
+    description: 1-3 paragraph summary of the feature and its business value.
+  requirements:
+    type: array
+    minItems: 1
+    items:
+      type: object
+      additionalProperties: false
+      required: [id, userStory, acceptanceCriteria]
+      properties:
+        id: { type: string, pattern: "^REQ-[0-9]{3}$" }
+        traces:
+          description: Optional upstream links to PRD features / BRD goals (when those tiers exist).
+          type: array
+          items: { type: string, pattern: "^(PRD|BRD)-[0-9]{3}$" }
+        userStory:
+          type: object
+          additionalProperties: false
+          required: [role, goal, benefit]
+          properties:
+            role: { type: string, minLength: 2 }
+            goal: { type: string, minLength: 5 }
+            benefit: { type: string, minLength: 5 }
+        acceptanceCriteria:
+          type: array
+          minItems: 1
+          items:
+            type: object
+            additionalProperties: false
+            required: [id, type, statement]
+            properties:
+              id: { type: string, pattern: "^AC-[0-9]{3}$" }
+              type: { enum: [ubiquitous, event, state, conditional, optional] }
+              statement:
+                type: string
+                description: EARS-formatted, testable criterion.
+                pattern: "SHALL"
+  nonFunctionalRequirements:
+    type: array
+    items:
+      type: object
+      additionalProperties: false
+      required: [id, category, statement]
+      properties:
+        id: { type: string, pattern: "^REQ-[0-9]{3}$" }
+        category:
+          enum: [performance, security, validation, observability, usability, reliability, maintainability]
+        statement: { type: string, pattern: "SHALL" }
+  outOfScope:
+    type: array
+    items: { type: string }

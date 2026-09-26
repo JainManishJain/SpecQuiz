@@ -1,0 +1,338 @@
+# JSON Schema (draft-07), expressed in YAML.
+# Phase 2 — Design. A single, exhaustive Technical Design Document (TDD) rich
+# enough to implement from directly without further clarification.
+$id: "specflow:phase:2-design"
+title: SpecFlow Design Artifact (Technical Design Document)
+description: Contract for the Phase 2 (Design) output — one comprehensive document.
+type: object
+additionalProperties: false
+required:
+  - meta
+  - overview
+  - architecture
+  - components
+  - dataModel
+  - apiContracts
+  - dtos
+  - businessLogic
+  - sequenceFlows
+  - validationRules
+  - errorHandling
+  - security
+  - configuration
+  - requirementsCoverage
+properties:
+  meta:
+    type: object
+    additionalProperties: false
+    required: [featureId, slug, title, phase, status, sourceArtifact]
+    properties:
+      featureId: { type: string, pattern: "^FEAT-[0-9]{3}$" }
+      slug: { type: string, pattern: "^[a-z0-9]+(-[a-z0-9]+)*$" }
+      title: { type: string, minLength: 3 }
+      phase: { const: design }
+      status: { enum: [draft, approved] }
+      sourceArtifact:
+        description: Must reference the phase 1 FSD artifact.
+        type: string
+        pattern: "1-requirements\\.md$"
+
+  overview:
+    type: string
+    minLength: 30
+    description: Summary of the design approach and key decisions.
+
+  architecture:
+    type: object
+    additionalProperties: false
+    required: [description, layers]
+    properties:
+      description: { type: string, minLength: 20 }
+      layers:
+        type: array
+        minItems: 1
+        description: The layered flow, e.g. Controller -> Service -> Repository -> DB.
+        items:
+          type: object
+          additionalProperties: false
+          required: [name, responsibility]
+          properties:
+            name: { type: string }
+            responsibility: { type: string }
+      designDecisions:
+        type: array
+        description: Notable decisions and their rationale (lightweight ADRs).
+        items:
+          type: object
+          additionalProperties: false
+          required: [decision, rationale]
+          properties:
+            decision: { type: string }
+            rationale: { type: string }
+            alternativesConsidered: { type: string }
+
+  components:
+    type: array
+    minItems: 1
+    description: Every class/type to be built, by stereotype, feature-prefixed.
+    items:
+      type: object
+      additionalProperties: false
+      required: [className, stereotype, package, responsibility, implements]
+      properties:
+        className: { type: string }
+        stereotype: { enum: [Controller, Service, Repository, Entity, DTO, Mapper, Util, Config, Exception, ExceptionHandler] }
+        package: { type: string, pattern: "^com\\.specquiz" }
+        responsibility: { type: string }
+        dependsOn:
+          type: array
+          items: { type: string }
+        implements:
+          description: Design element / requirement IDs this component realizes.
+          type: array
+          minItems: 1
+          items: { type: string, pattern: "^(DES|REQ|AC)-[0-9]{3}$" }
+
+  dataModel:
+    type: array
+    minItems: 1
+    items:
+      type: object
+      additionalProperties: false
+      required: [entity, table, fields]
+      properties:
+        entity: { type: string }
+        table: { type: string }
+        fields:
+          type: array
+          minItems: 1
+          items:
+            type: object
+            additionalProperties: false
+            required: [name, type, nullable]
+            properties:
+              name: { type: string }
+              type: { type: string }
+              column: { type: string }
+              nullable: { type: boolean }
+              constraints: { type: string }
+              notes: { type: string }
+        primaryKey: { type: string }
+        indexes:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [name, columns]
+            properties:
+              name: { type: string }
+              columns:
+                type: array
+                items: { type: string }
+              unique: { type: boolean }
+        relationships:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [type, target]
+            properties:
+              type: { enum: [one-to-one, one-to-many, many-to-one, many-to-many] }
+              target: { type: string }
+              mappedBy: { type: string }
+              cascade: { type: string }
+              fetch: { enum: [LAZY, EAGER] }
+
+  apiContracts:
+    type: array
+    minItems: 1
+    items:
+      type: object
+      additionalProperties: false
+      required: [id, method, path, description, requestBody, responses, satisfies]
+      properties:
+        id: { type: string, pattern: "^DES-[0-9]{3}$" }
+        method: { enum: [GET, POST, PUT, PATCH, DELETE] }
+        path: { type: string, pattern: "^/" }
+        description: { type: string }
+        pathParams:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [name, type]
+            properties:
+              name: { type: string }
+              type: { type: string }
+        queryParams:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [name, type, required]
+            properties:
+              name: { type: string }
+              type: { type: string }
+              required: { type: boolean }
+              default: { type: string }
+        requestBody:
+          description: DTO name or "none".
+          type: string
+        responses:
+          type: array
+          minItems: 1
+          items:
+            type: object
+            additionalProperties: false
+            required: [status, body]
+            properties:
+              status: { type: integer }
+              body: { type: string }
+              description: { type: string }
+        satisfies:
+          type: array
+          minItems: 1
+          items: { type: string, pattern: "^(REQ|AC)-[0-9]{3}$" }
+
+  dtos:
+    type: array
+    minItems: 1
+    description: Request/response models with field-level detail.
+    items:
+      type: object
+      additionalProperties: false
+      required: [name, direction, fields]
+      properties:
+        name: { type: string }
+        direction: { enum: [request, response] }
+        fields:
+          type: array
+          minItems: 1
+          items:
+            type: object
+            additionalProperties: false
+            required: [name, type]
+            properties:
+              name: { type: string }
+              type: { type: string }
+              validation: { type: string }
+              notes: { type: string }
+
+  businessLogic:
+    type: array
+    minItems: 1
+    description: Service-level rules and algorithms, mapped to requirements.
+    items:
+      type: object
+      additionalProperties: false
+      required: [id, description, satisfies]
+      properties:
+        id: { type: string, pattern: "^DES-[0-9]{3}$" }
+        description: { type: string }
+        steps:
+          type: array
+          items: { type: string }
+        satisfies:
+          type: array
+          minItems: 1
+          items: { type: string, pattern: "^(REQ|AC)-[0-9]{3}$" }
+
+  sequenceFlows:
+    type: array
+    minItems: 1
+    description: Step-by-step request flows across layers for key operations.
+    items:
+      type: object
+      additionalProperties: false
+      required: [name, steps]
+      properties:
+        name: { type: string }
+        steps:
+          type: array
+          minItems: 2
+          items: { type: string }
+
+  validationRules:
+    type: array
+    minItems: 1
+    items:
+      type: object
+      additionalProperties: false
+      required: [field, rule, httpStatus, satisfies]
+      properties:
+        field: { type: string }
+        rule: { type: string }
+        httpStatus: { type: integer }
+        satisfies: { type: string, pattern: "^(REQ|AC)-[0-9]{3}$" }
+
+  errorHandling:
+    type: object
+    additionalProperties: false
+    required: [errorResponseShape, cases]
+    properties:
+      errorResponseShape:
+        description: The standard error body structure (e.g. timestamp, status, error, message, path).
+        type: string
+      cases:
+        type: array
+        minItems: 1
+        items:
+          type: object
+          additionalProperties: false
+          required: [condition, httpStatus, exception]
+          properties:
+            condition: { type: string }
+            httpStatus: { type: integer }
+            exception: { type: string }
+            message: { type: string }
+
+  security:
+    type: object
+    additionalProperties: false
+    required: [considerations]
+    properties:
+      considerations:
+        type: array
+        minItems: 1
+        description: Input validation, authz, injection, data exposure, etc.
+        items: { type: string }
+      authRequired: { type: boolean }
+      notes: { type: string }
+
+  configuration:
+    type: array
+    description: New/changed config keys (application.yml), dependencies, or migrations.
+    items:
+      type: object
+      additionalProperties: false
+      required: [key, purpose]
+      properties:
+        key: { type: string }
+        purpose: { type: string }
+        default: { type: string }
+
+  observability:
+    type: object
+    additionalProperties: false
+    properties:
+      logging:
+        type: array
+        items: { type: string }
+      metrics:
+        type: array
+        items: { type: string }
+
+  requirementsCoverage:
+    type: array
+    minItems: 1
+    description: Proves every requirement/AC is addressed by a design element.
+    items:
+      type: object
+      additionalProperties: false
+      required: [requirement, designElements]
+      properties:
+        requirement: { type: string, pattern: "^(REQ|AC)-[0-9]{3}$" }
+        designElements:
+          type: array
+          minItems: 1
+          items: { type: string, pattern: "^DES-[0-9]{3}$" }

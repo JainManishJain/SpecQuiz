@@ -1,0 +1,75 @@
+# JSON Schema (draft-07), expressed in YAML.
+$id: "specflow:phase:4-review"
+title: SpecFlow Review Artifact
+description: Contract for the Phase 4 (Review) output artifact.
+type: object
+additionalProperties: false
+required: [meta, verdict, rationale, checklist, findings, acceptanceCriteriaVerification]
+properties:
+  meta:
+    type: object
+    additionalProperties: false
+    required: [featureId, slug, title, phase, status, sourceArtifact]
+    properties:
+      featureId: { type: string, pattern: "^FEAT-[0-9]{3}$" }
+      slug: { type: string, pattern: "^[a-z0-9]+(-[a-z0-9]+)*$" }
+      title: { type: string, minLength: 3 }
+      phase: { const: review }
+      status: { enum: [draft, approved] }
+      sourceArtifact:
+        type: array
+        minItems: 3
+        items: { type: string }
+  verdict:
+    description: Workflow gate. PASS allows phase 5; FAIL blocks it.
+    enum: [PASS, FAIL]
+  rationale:
+    type: string
+    minLength: 10
+  checklist:
+    type: array
+    minItems: 1
+    items:
+      type: object
+      additionalProperties: false
+      required: [dimension, result, notes]
+      properties:
+        dimension:
+          enum:
+            - requirements-coverage
+            - design-conformance
+            - naming-and-layout
+            - validation-and-error-handling
+            - test-adequacy
+            - security-and-safety
+            - build-and-test-status
+        result: { enum: [pass, fail, n-a] }
+        notes: { type: string, minLength: 3 }
+  findings:
+    type: array
+    items:
+      type: object
+      additionalProperties: false
+      required: [id, severity, location, description, recommendedFix]
+      properties:
+        id: { type: string, pattern: "^F-[0-9]{3}$" }
+        severity: { enum: [blocker, major, minor, info] }
+        location: { type: string }
+        description: { type: string }
+        recommendedFix: { type: string }
+        refs:
+          type: array
+          items: { type: string, pattern: "^(REQ|AC|DES|TC)-[0-9]{3}$" }
+  acceptanceCriteriaVerification:
+    type: array
+    minItems: 1
+    items:
+      type: object
+      additionalProperties: false
+      required: [ac, testCases, status]
+      properties:
+        ac: { type: string, pattern: "^AC-[0-9]{3}$" }
+        testCases:
+          type: array
+          items: { type: string, pattern: "^TC-[0-9]{3}$" }
+        status: { enum: [pass, fail] }

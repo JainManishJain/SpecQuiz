@@ -1,0 +1,80 @@
+# JSON Schema (draft-07), expressed in YAML.
+$id: "specflow:phase:3-code-and-tests"
+title: SpecFlow Code & Test Cases Artifact
+description: Contract for the Phase 3 (Code & Test Cases) output artifact.
+type: object
+additionalProperties: false
+required: [meta, implementationSummary, fileManifest, testCases, acceptanceCriteriaCoverage, buildResult]
+properties:
+  meta:
+    type: object
+    additionalProperties: false
+    required: [featureId, slug, title, phase, status, sourceArtifact]
+    properties:
+      featureId: { type: string, pattern: "^FEAT-[0-9]{3}$" }
+      slug: { type: string, pattern: "^[a-z0-9]+(-[a-z0-9]+)*$" }
+      title: { type: string, minLength: 3 }
+      phase: { const: code-and-tests }
+      status: { enum: [draft, approved] }
+      sourceArtifact:
+        description: Must reference the phase 2 design artifact.
+        type: string
+        pattern: "2-design\\.md$"
+  implementationSummary:
+    type: string
+    minLength: 20
+  fileManifest:
+    type: array
+    minItems: 1
+    items:
+      type: object
+      additionalProperties: false
+      required: [path, stereotype, implements, change]
+      properties:
+        path: { type: string }
+        stereotype: { enum: [Controller, Service, Repository, Entity, DTO, Util, Config, Exception, Test] }
+        implements:
+          type: array
+          minItems: 1
+          items: { type: string, pattern: "^DES-[0-9]{3}$" }
+        change: { enum: [new, modified, deleted] }
+  testCases:
+    type: array
+    minItems: 1
+    items:
+      type: object
+      additionalProperties: false
+      required: [id, covers, level, description, expectedResult]
+      properties:
+        id: { type: string, pattern: "^TC-[0-9]{3}$" }
+        covers:
+          type: array
+          minItems: 1
+          items: { type: string, pattern: "^AC-[0-9]{3}$" }
+        level: { enum: [unit, integration, e2e] }
+        description: { type: string }
+        expectedResult: { type: string }
+  acceptanceCriteriaCoverage:
+    type: array
+    minItems: 1
+    description: Every AC from Requirements must be covered by at least one test case.
+    items:
+      type: object
+      additionalProperties: false
+      required: [ac, coveredBy]
+      properties:
+        ac: { type: string, pattern: "^AC-[0-9]{3}$" }
+        coveredBy:
+          type: array
+          minItems: 1
+          items: { type: string, pattern: "^TC-[0-9]{3}$" }
+  buildResult:
+    type: object
+    additionalProperties: false
+    required: [command, status, testsRun, testsPassed, testsFailed]
+    properties:
+      command: { type: string }
+      status: { enum: [PASS, FAIL] }
+      testsRun: { type: integer, minimum: 0 }
+      testsPassed: { type: integer, minimum: 0 }
+      testsFailed: { type: integer, minimum: 0 }

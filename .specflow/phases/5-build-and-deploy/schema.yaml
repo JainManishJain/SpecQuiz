@@ -1,0 +1,71 @@
+# JSON Schema (draft-07), expressed in YAML.
+$id: "specflow:phase:5-build-and-deploy"
+title: SpecFlow Build & Deploy Artifact
+description: Contract for the Phase 5 (Build & Deploy) output artifact.
+type: object
+additionalProperties: false
+required: [meta, precondition, build, build_status, deploymentPlan, rollbackPlan, releaseNotes]
+properties:
+  meta:
+    type: object
+    additionalProperties: false
+    required: [featureId, slug, title, phase, status, sourceArtifact]
+    properties:
+      featureId: { type: string, pattern: "^FEAT-[0-9]{3}$" }
+      slug: { type: string, pattern: "^[a-z0-9]+(-[a-z0-9]+)*$" }
+      title: { type: string, minLength: 3 }
+      phase: { const: build-and-deploy }
+      status: { enum: [draft, approved] }
+      sourceArtifact:
+        description: Must reference the phase 4 review artifact.
+        type: string
+        pattern: "4-review\\.md$"
+  precondition:
+    type: object
+    additionalProperties: false
+    required: [reviewVerdict, proceed]
+    properties:
+      reviewVerdict: { enum: [PASS, FAIL] }
+      proceed: { type: boolean }
+  build:
+    type: object
+    additionalProperties: false
+    required: [command, version, artifact]
+    properties:
+      command: { type: string }
+      version: { type: string }
+      artifact: { type: string }
+  build_status:
+    description: Workflow gate for the terminal phase.
+    enum: [SUCCESS, FAILURE]
+  deploymentPlan:
+    type: array
+    minItems: 1
+    items:
+      type: object
+      additionalProperties: false
+      required: [step, action]
+      properties:
+        step: { type: integer, minimum: 1 }
+        action: { type: string }
+        notes: { type: string }
+  rollbackPlan:
+    type: array
+    minItems: 1
+    items:
+      type: object
+      additionalProperties: false
+      required: [step, action]
+      properties:
+        step: { type: integer, minimum: 1 }
+        action: { type: string }
+  releaseNotes:
+    type: object
+    additionalProperties: false
+    required: [shipped]
+    properties:
+      shipped: { type: string }
+      requirements:
+        type: array
+        items: { type: string, pattern: "^REQ-[0-9]{3}$" }
+      knownLimitations: { type: string }

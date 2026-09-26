@@ -1,0 +1,60 @@
+# Format specification for Phase 1 export artifacts.
+# NOTE: This describes two file outputs (a CSV and a Markdown page). The CSV
+# column contract is expressed as a JSON-Schema-style object for validation of a
+# parsed row; the Markdown page is described structurally.
+$id: "specflow:phase:1-requirements:export"
+title: SpecFlow Requirements Export Spec (optional sub-step)
+description: >-
+  Contract for import-ready Jira CSV and Confluence Markdown exports. No live
+  API integration; files are seeded manually.
+type: object
+additionalProperties: false
+required: [outputs, jiraCsv]
+properties:
+  outputs:
+    type: object
+    additionalProperties: false
+    required: [jira, confluence]
+    properties:
+      jira: { const: "features/{slug}/exports/jira-stories.csv" }
+      confluence: { const: "features/{slug}/exports/confluence-{slug}.md" }
+  jiraCsv:
+    type: object
+    additionalProperties: false
+    required: [delimiter, quoting, columns, rowSchema]
+    properties:
+      delimiter: { const: "," }
+      quoting: { const: rfc4180 }
+      columns:
+        type: array
+        description: Header row, exact order.
+        items: { type: string }
+        minItems: 8
+      rowSchema:
+        description: Shape of a single parsed data row (a Story).
+        type: object
+        additionalProperties: false
+        required: ["Issue Type", "Summary", "Description", "Acceptance Criteria", "External ID"]
+        properties:
+          "Issue Type": { enum: [Story, Epic, Task, Bug] }
+          "Summary": { type: string, minLength: 1 }
+          "Description": { type: string }
+          "Priority": { enum: [Highest, High, Medium, Low, Lowest, ""] }
+          "Labels": { type: string }
+          "Epic Name": { type: string }
+          "Acceptance Criteria": { type: string }
+          "External ID": { type: string, pattern: "^REQ-[0-9]{3}$" }
+  confluencePage:
+    type: object
+    additionalProperties: false
+    properties:
+      titlePattern: { const: "{title} — Requirements" }
+      requiredSections:
+        type: array
+        items: { type: string }
+        default:
+          - Overview
+          - Functional Requirements
+          - Non-Functional Requirements
+          - Out of Scope
+          - Traceability

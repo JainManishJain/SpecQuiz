@@ -1,0 +1,64 @@
+# JSON Schema (draft-07), expressed in YAML.
+$id: "specflow:phase:1-requirements:brd"
+title: SpecFlow BRD Artifact (optional tier)
+description: Contract for the optional Business Requirements Document tier.
+type: object
+additionalProperties: false
+required: [meta, problemStatement, businessGoals, stakeholders]
+properties:
+  meta:
+    type: object
+    additionalProperties: false
+    required: [featureId, slug, title, phase, tier, status, sourceArtifact]
+    properties:
+      featureId: { type: string, pattern: "^FEAT-[0-9]{3}$" }
+      slug: { type: string, pattern: "^[a-z0-9]+(-[a-z0-9]+)*$" }
+      title: { type: string, minLength: 3 }
+      phase: { const: requirements }
+      tier: { const: brd }
+      status: { enum: [draft, approved] }
+      sourceArtifact: { type: ["string", "null"] }
+  problemStatement:
+    type: string
+    minLength: 20
+  businessGoals:
+    type: array
+    minItems: 1
+    items:
+      type: object
+      additionalProperties: false
+      required: [id, goal, successMetric]
+      properties:
+        id: { type: string, pattern: "^BRD-[0-9]{3}$" }
+        goal: { type: string, minLength: 5 }
+        successMetric:
+          description: Measurable KPI with a target value.
+          type: string
+          minLength: 3
+  stakeholders:
+    type: array
+    minItems: 1
+    items:
+      type: object
+      additionalProperties: false
+      required: [role, interest]
+      properties:
+        role: { type: string }
+        interest: { type: string }
+  constraints:
+    type: array
+    items: { type: string }
+  assumptions:
+    type: array
+    items: { type: string }
+  risks:
+    type: array
+    items:
+      type: object
+      additionalProperties: false
+      required: [risk, impact, likelihood, mitigation]
+      properties:
+        risk: { type: string }
+        impact: { enum: [high, medium, low] }
+        likelihood: { enum: [high, medium, low] }
+        mitigation: { type: string }

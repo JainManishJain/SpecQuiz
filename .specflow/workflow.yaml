@@ -1,0 +1,154 @@
+# SpecFlow — SDLC Workflow Definition
+#
+# This file is the single source of truth for the spec-driven development
+# workflow. A prompt runner (or a developer working with an AI agent) reads
+# this file to know, for each SDLC phase:
+#   - which prompt + schema + template govern the phase
+#   - what artifact the phase produces
+#   - which prior artifact(s) feed into it as input
+#
+# Golden rule: the OUTPUT of a phase is the INPUT of the next phase.
+# No phase may be started until the previous phase's artifact exists AND its
+# gate (where defined) has passed.
+
+version: "1.0"
+name: SpecQuiz SpecFlow
+description: >-
+  Standardized, spec-driven SDLC workflow. Every feature flows through five
+  phases in strict order. Each phase consumes the previous phase's artifact,
+  is driven by a standardized prompt, and must conform to a JSON Schema.
+
+# Where per-feature artifacts are written. {slug} is the kebab-case feature name.
+artifact_root: "features/{slug}"
+
+# Global conventions every phase inherits.
+conventions:
+  acceptance_criteria_syntax: EARS      # "WHEN <trigger> THE SYSTEM SHALL <response>"
+  id_scheme:
+    feature: "FEAT-<NNN>"               # e.g. FEAT-001
+    requirement: "REQ-<NNN>"            # e.g. REQ-001
+    acceptance_criterion: "AC-<NNN>"    # e.g. AC-001
+    design_element: "DES-<NNN>"         # e.g. DES-001
+    test_case: "TC-<NNN>"               # e.g. TC-001
+  code_layout:
+    base_package: "com.specquiz"
+    # Classes are grouped by standard stereotype and prefixed with the feature name.
+    naming:
+      controller: "<Feature>Controller"     # e.g. QuestionController
+      service: "<Feature>Service"           # e.g. QuestionService
+      repository: "<Feature>Repository"     # e.g. QuestionRepository
+      entity: "<Feature>"                    # e.g. Question
+      dto: "<Feature>Request / <Feature>Response"
+      util: "<Feature>Util"                  # e.g. QuestionUtil
+    package_by_feature: false               # group by stereotype, not by feature
+
+phases:
+  - id: 1
+    key: requirements
+    name: Requirements
+    dir: .specflow/phases/1-requirements
+    # Phase 1 is TIERED. The FSD tier is the default and always required.
+    # BRD and PRD are optional tiers for larger/higher-risk features.
+    # The export sub-step is optional and produces import-ready files only.
+    output: "features/{slug}/1-requirements.md"   # the FSD artifact (canonical phase-1 output)
+    gate: null
+    tiers:
+      - key: brd
+        name: Business Requirements Document
+        optional: true
+        prompt: .specflow/phases/1-requirements/brd/prompt.md
+        schema: .specflow/phases/1-requirements/brd/schema.yaml
+        template: .specflow/phases/1-requirements/brd/template.md
+        inputs:
+          - type: feature_request
+        output: "features/{slug}/requirements/brd.md"
+      - key: prd
+        name: Product Requirements Document
+        optional: true
+        prompt: .specflow/phases/1-requirements/prd/prompt.md
+        schema: .specflow/phases/1-requirements/prd/schema.yaml
+        template: .specflow/phases/1-requirements/prd/template.md
+        inputs:
+          - type: feature_request
+          - artifact: "features/{slug}/requirements/brd.md"   # optional
+            optional: true
+        output: "features/{slug}/requirements/prd.md"
+      - key: fsd
+        name: Functional Specification Document
+        optional: false                 # DEFAULT — always produced
+        prompt: .specflow/phases/1-requirements/fsd/prompt.md
+        schema: .specflow/phases/1-requirements/fsd/schema.yaml
+        template: .specflow/phases/1-requirements/fsd/template.md
+        inputs:
+          - type: feature_request
+          - artifact: "features/{slug}/requirements/prd.md"   # optional
+            optional: true
+        output: "features/{slug}/1-requirements.md"
+    subSteps:
+      - key: export
+        name: Jira & Confluence Export
+        optional: true
+        produces_code: false
+        prompt: .specflow/phases/1-requirements/export/prompt.md
+        schema: .specflow/phases/1-requirements/export/schema.yaml
+        inputs:
+          - artifact: "features/{slug}/1-requirements.md"
+        outputs:
+          - "features/{slug}/exports/jira-stories.csv"
+          - "features/{slug}/exports/confluence-{slug}.md"
+
+  - id: 2
+    key: design
+    name: Design
+    dir: .specflow/phases/2-design
+    prompt: .specflow/phases/2-design/prompt.md
+    schema: .specflow/phases/2-design/schema.yaml
+    template: .specflow/phases/2-design/template.md
+    inputs:
+      - artifact: "features/{slug}/1-requirements.md"
+    output: "features/{slug}/2-design.md"
+    gate: null
+
+  - id: 3
+    key: code-and-tests
+    name: Code & Test Cases
+    dir: .specflow/phases/3-code-and-tests
+    prompt: .specflow/phases/3-code-and-tests/prompt.md
+    schema: .specflow/phases/3-code-and-tests/schema.yaml
+    template: .specflow/phases/3-code-and-tests/template.md
+    inputs:
+      - artifact: "features/{slug}/2-design.md"
+    output: "features/{slug}/3-code-and-tests.md"
+    produces_code: true                 # also emits real source under src/
+    gate: null
+
+  - id: 4
+    key: review
+    name: Review
+    dir: .specflow/phases/4-review
+    prompt: .specflow/phases/4-review/prompt.md
+    schema: .specflow/phases/4-review/schema.yaml
+    template: .specflow/phases/4-review/template.md
+    inputs:
+      - artifact: "features/{slug}/1-requirements.md"
+      - artifact: "features/{slug}/2-design.md"
+      - artifact: "features/{slug}/3-code-and-tests.md"
+    output: "features/{slug}/4-review.md"
+    gate:
+      field: verdict                    # artifact must report verdict: PASS
+      pass_value: PASS
+
+  - id: 5
+    key: build-and-deploy
+    name: Build & Deploy
+    dir: .specflow/phases/5-build-and-deploy
+    prompt: .specflow/phases/5-build-and-deploy/prompt.md
+    schema: .specflow/phases/5-build-and-deploy/schema.yaml
+    template: .specflow/phases/5-build-and-deploy/template.md
+    inputs:
+      - artifact: "features/{slug}/4-review.md"
+        require_gate: PASS              # phase 5 only runs if review gate passed
+    output: "features/{slug}/5-build-and-deploy.md"
+    gate:
+      field: build_status
+      pass_value: SUCCESS
