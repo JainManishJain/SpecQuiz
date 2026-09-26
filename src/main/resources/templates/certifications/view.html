@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <title th:text="'SpecQuiz — ' + ${certificate.title}">Certificate</title>
+    <style>
+        body { font-family: system-ui, sans-serif; margin: 2rem; color: #1a1a1a; }
+        h1 { font-size: 1.5rem; }
+        .card { border: 1px solid #ddd; border-radius: 6px; padding: 1rem; margin: 1rem 0; }
+        .row { display: flex; gap: 1rem; flex-wrap: wrap; align-items: end; }
+        label { display: block; font-weight: 600; font-size: 0.85rem; margin-bottom: 0.2rem; }
+        input, select { padding: 0.35rem; }
+        .button { padding: 0.4rem 0.8rem; background: #2b6cb0; color: #fff; border: none;
+            border-radius: 4px; cursor: pointer; }
+        .danger { background: #c53030; }
+        .muted { color: #666; }
+        .error { color: #c53030; font-size: 0.85rem; }
+        .weight-total { font-weight: 600; }
+        ul.options { margin: 0.3rem 0; }
+        li.correct { color: #2f855a; font-weight: 600; }
+    </style>
+</head>
+<body>
+<p><a th:href="@{/certifications}">&larr; All certifications</a></p>
+<h1 th:text="${certificate.title}">Certificate</h1>
+
+<div class="card">
+    <div class="row">
+        <div><label>Pass percentage</label><span th:text="${certificate.passPercentage} + '%'">70%</span></div>
+        <div><label>Questions asked</label><span th:text="${certificate.questionsToAsk}">5</span></div>
+        <div><label>Total questions (pool)</label><span th:text="${certificate.totalQuestions()}">5</span></div>
+        <div><label>Section weight total</label>
+            <span class="weight-total" th:text="${certificate.totalWeight()} + ' / 100'">100 / 100</span></div>
+    </div>
+
+    <div class="row" style="margin-top:1rem;">
+        <form th:action="@{'/certifications/' + ${certificate.id} + '/pass-percentage'}" method="post" class="row">
+            <div><label for="pp">Set pass %</label>
+                <input id="pp" name="passPercentage" type="number" min="1" max="100" th:value="${certificate.passPercentage}"/></div>
+            <button class="button" type="submit">Save</button>
+        </form>
+        <form th:action="@{'/certifications/' + ${certificate.id} + '/exam-length'}" method="post" class="row">
+            <div><label for="ql">Set questions to ask</label>
+                <input id="ql" name="questionsToAsk" type="number" min="5" th:value="${certificate.questionsToAsk}"/></div>
+            <button class="button" type="submit">Save</button>
+        </form>
+    </div>
+    <div class="error" th:if="${examLengthError}">
+        <ul><li th:each="v : ${examLengthError}" th:text="${v.message()}">error</li></ul>
+    </div>
+    <div class="error" th:if="${passPercentageError}">
+        <ul><li th:each="v : ${passPercentageError}" th:text="${v.message()}">error</li></ul>
+    </div>
+
+    <div style="margin-top:1rem;">
+        <form th:action="@{'/certifications/' + ${certificate.id} + '/validate'}" method="post" style="display:inline;">
+            <button class="button" type="submit">Validate certificate</button>
+        </form>
+        <span th:if="${validationOk}" style="color:#2f855a; margin-left:0.5rem;" th:text="${validationOk}">ok</span>
+    </div>
+    <div class="error" th:if="${validationErrors}">
+        <strong>Cannot finalize — fix these:</strong>
+        <ul><li th:each="v : ${validationErrors}" th:text="${v.message()}">error</li></ul>
+    </div>
+</div>
+
+<div class="card">
+    <h2>Add section</h2>
+    <div class="error" th:if="${sectionError}" th:text="${sectionError}">section error</div>
+    <form th:action="@{'/certifications/' + ${certificate.id} + '/sections'}" method="post" class="row">
+        <div><label for="sname">Section name</label><input id="sname" name="name" list="existing-sections" placeholder="e.g. Fundamentals"/>
+            <datalist id="existing-sections">
+                <option th:each="s : ${certificate.sections}" th:value="${s.name}"></option>
+            </datalist>
+        </div>
+        <div><label for="sweight">Weight (multiple of 20)</label>
+            <select id="sweight" name="weight">
+                <option value="20">20</option><option value="40">40</option>
+                <option value="60">60</option><option value="80">80</option><option value="100">100</option>
+            </select></div>
+        <button class="button" type="submit">Add section</button>
+    </form>
+</div>
+
+<div class="card" th:each="s : ${certificate.sections}">
+    <h2 th:text="${s.name} + ' (' + ${s.weight} + '%)'">Section</h2>
+
+    <div th:each="q : ${s.questions}" style="border-top:1px solid #eee; padding-top:0.5rem; margin-top:0.5rem;">
+        <div><strong th:text="${q.text}">Question?</strong></div>
+        <ul class="options">
+            <li th:each="o : ${q.options}" th:text="${o.text}" th:classappend="${o.correct} ? 'correct' : ''">option</li>
+        </ul>
+        <div class="muted" th:text="'Explanation: ' + ${q.explanation}">explanation</div>
+        <button class="button danger" type="button" th:attr="data-id=${q.id}" onclick="deleteQuestion(this)">Delete</button>
+    </div>
+
+    <div style="border-top:1px solid #eee; margin-top:0.75rem; padding-top:0.75rem;">
+        <h3>Add question</h3>
+        <div th:attr="data-section-id=${s.id}" class="add-question">
+            <div><label>Question text</label><input class="q-text" type="text" style="width:30rem;max-width:100%"/></div>
+            <div th:each="i : ${#numbers.sequence(0,3)}">
+                <label>
+                    <input type="radio" th:name="'correct-' + ${s.id}" th:value="${i}" th:checked="${i==0}"/>
+                    Option <span th:text="${i+1}">1</span> (select if correct)
+                </label>
+                <input class="q-option" type="text" style="width:26rem;max-width:100%"/>
+            </div>
+            <div><label>Explanation (one line)</label><input class="q-expl" type="text" style="width:30rem;max-width:100%"/></div>
+            <button class="button" type="button" th:attr="data-section-id=${s.id}" onclick="addQuestion(this)">Add question</button>
+            <div class="error add-error"></div>
+        </div>
+    </div>
+</div>
+
+<script th:inline="javascript">
+    function addQuestion(btn) {
+        const wrap = btn.closest('.add-question');
+        const sectionId = wrap.getAttribute('data-section-id');
+        const text = wrap.querySelector('.q-text').value;
+        const explanation = wrap.querySelector('.q-expl').value;
+        const options = Array.from(wrap.querySelectorAll('.q-option')).map(i => i.value);
+        const correctRadio = wrap.querySelector('input[type=radio]:checked');
+        const correctOptionIndex = correctRadio ? parseInt(correctRadio.value, 10) : 0;
+        const errBox = wrap.querySelector('.add-error');
+        errBox.textContent = '';
+
+        fetch('/api/sections/' + sectionId + '/questions', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text, explanation, options, correctOptionIndex })
+        }).then(async r => {
+            if (r.status === 201) { window.location.reload(); return; }
+            const body = await r.json().catch(() => ({}));
+            const msgs = (body.violations || []).map(v => v.message).join('; ') || body.message || 'Failed to add question';
+            errBox.textContent = msgs;
+        }).catch(() => { errBox.textContent = 'Network error'; });
+    }
+
+    function deleteQuestion(btn) {
+        const id = btn.getAttribute('data-id');
+        if (!confirm('Delete this question?')) return;
+        fetch('/api/questions/' + id, { method: 'DELETE' })
+            .then(r => { if (r.status === 204) window.location.reload(); else alert('Delete failed'); })
+            .catch(() => alert('Network error'));
+    }
+</script>
+</body>
+</html>

@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <title>SpecQuiz — Result</title>
+    <style>
+        body { font-family: system-ui, sans-serif; margin: 2rem; color: #1a1a1a; }
+        .summary { border-radius: 6px; padding: 1rem; margin: 1rem 0; font-size: 1.1rem; }
+        .pass { background: #f0fff4; border: 1px solid #2f855a; color: #22543d; }
+        .fail { background: #fff5f5; border: 1px solid #c53030; color: #742a2a; }
+        .question { border: 1px solid #ddd; border-radius: 6px; padding: 1rem; margin: 0.75rem 0; }
+        .q-correct { border-left: 5px solid #2f855a; }
+        .q-incorrect { border-left: 5px solid #c53030; }
+        .badge { font-weight: 700; }
+        .badge.ok { color: #2f855a; }
+        .badge.no { color: #c53030; }
+        ul.options { margin: 0.4rem 0; list-style: none; padding-left: 0; }
+        li.opt { padding: 0.15rem 0; }
+        li.opt.correct { color: #2f855a; font-weight: 600; }
+        li.opt.selected-wrong { color: #c53030; text-decoration: line-through; }
+        .muted { color: #555; font-style: italic; }
+        .button { margin-top: 1rem; padding: 0.5rem 1rem; background: #2b6cb0; color: #fff;
+            border: none; border-radius: 4px; cursor: pointer; text-decoration: none; }
+    </style>
+</head>
+<body>
+<h1>Exam result</h1>
+
+<div th:classappend="${result.passed()} ? 'summary pass' : 'summary fail'">
+    <div>Candidate: <strong th:text="${result.candidateName()}">Name</strong></div>
+    <div>Score: <strong th:text="${result.scorePercentage()} + '%'">0%</strong>
+        (<span th:text="${result.correctCount()}">0</span> of <span th:text="${result.totalQuestions()}">0</span> correct)</div>
+    <div>Pass mark: <span th:text="${result.passPercentage()} + '%'">70%</span></div>
+    <div class="badge" th:classappend="${result.passed()} ? 'ok' : 'no'"
+         th:text="${result.passed()} ? 'PASS' : 'FAIL'">PASS</div>
+</div>
+
+<div class="question" th:each="item, iStat : ${result.items()}"
+     th:classappend="${item.correct()} ? 'q-correct' : 'q-incorrect'">
+    <div>
+        <span th:text="${iStat.count}">1</span>.
+        <span th:text="${item.questionText()}">Question?</span>
+        <span class="badge" th:classappend="${item.correct()} ? 'ok' : 'no'"
+              th:text="${item.correct()} ? ' ✓ correct' : ' ✗ incorrect'">status</span>
+    </div>
+    <ul class="options">
+        <li class="opt" th:each="o : ${item.options()}"
+            th:classappend="${o.correct()} ? 'correct' : (${o.selected()} ? 'selected-wrong' : '')">
+            <span th:text="${o.text()}">option</span>
+            <span th:if="${o.correct()}"> (correct answer)</span>
+            <span th:if="${o.selected() and !o.correct()}"> (your answer)</span>
+            <span th:if="${o.selected() and o.correct()}"> (your answer)</span>
+        </li>
+    </ul>
+    <div class="muted" th:text="'Explanation: ' + ${item.explanation()}">explanation</div>
+</div>
+
+<a class="button" th:href="@{/attempts/new}">Take another exam</a>
+</body>
+</html>

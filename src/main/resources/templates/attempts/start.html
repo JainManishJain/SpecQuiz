@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <title>SpecQuiz — Start Exam</title>
+    <style>
+        body { font-family: system-ui, sans-serif; margin: 2rem; color: #1a1a1a; }
+        label { display: block; margin: 0.75rem 0 0.25rem; font-weight: 600; }
+        input, select { padding: 0.4rem; width: 22rem; max-width: 100%; }
+        .error { color: #c53030; font-size: 0.85rem; }
+        .button { margin-top: 1rem; padding: 0.5rem 1rem; background: #2b6cb0; color: #fff;
+            border: none; border-radius: 4px; cursor: pointer; }
+    </style>
+</head>
+<body>
+<h1>Start a certification exam</h1>
+<form th:action="@{/attempts}" th:object="${startAttemptRequest}" method="post">
+    <label for="candidateName">Your name</label>
+    <input id="candidateName" type="text" th:field="*{candidateName}"/>
+    <div class="error" th:if="${#fields.hasErrors('candidateName')}" th:errors="*{candidateName}">name error</div>
+
+    <label for="certificateId">Certification</label>
+    <select id="certificateId" th:field="*{certificateId}">
+        <option value="" disabled selected>-- choose a certification --</option>
+        <option th:each="c : ${certificates}" th:value="${c.id}" th:text="${c.title}">Cert</option>
+    </select>
+    <div class="error" th:if="${#fields.hasErrors('certificateId')}" th:errors="*{certificateId}">cert error</div>
+
+    <div><button class="button" type="submit">Start exam</button></div>
+</form>
+<p><a th:href="@{/certifications}">Manage certifications</a></p>
+</body>
+</html>

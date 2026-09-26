@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <title th:text="'SpecQuiz — ' + ${attempt.certificateTitle()}">Exam</title>
+    <style>
+        body { font-family: system-ui, sans-serif; margin: 2rem; color: #1a1a1a; }
+        .question { border: 1px solid #ddd; border-radius: 6px; padding: 1rem; margin: 1rem 0; }
+        .q-text { font-weight: 600; margin-bottom: 0.5rem; }
+        .option { display: block; margin: 0.3rem 0; }
+        .button { margin-top: 1rem; padding: 0.6rem 1.2rem; background: #2b6cb0; color: #fff;
+            border: none; border-radius: 4px; cursor: pointer; font-size: 1rem; }
+    </style>
+</head>
+<body>
+<h1 th:text="${attempt.certificateTitle()}">Certificate</h1>
+<p>Candidate: <strong th:text="${attempt.candidateName()}">Name</strong></p>
+
+<form th:action="@{/attempts/submit}" method="post">
+    <input type="hidden" name="candidateName" th:value="${attempt.candidateName()}"/>
+    <input type="hidden" name="certificateId" th:value="${attempt.certificateId()}"/>
+
+    <div class="question" th:each="q, qStat : ${attempt.questions()}">
+        <div class="q-text"><span th:text="${qStat.count}">1</span>. <span th:text="${q.text()}">Question?</span></div>
+        <!-- Authoritative served-question id (counts even if unanswered, AC-010). -->
+        <input type="hidden" name="servedQuestionIds" th:value="${q.questionId()}"/>
+        <!-- Radios are the ONLY source of answers[qid]; an unanswered question simply
+             submits no answers[qid] entry, and the served id above still counts it. -->
+        <label class="option" th:each="o : ${q.options()}">
+            <input type="radio"
+                   th:name="'answers[' + ${q.questionId()} + ']'"
+                   th:value="${o.optionId()}"/>
+            <span th:text="${o.text()}">option</span>
+        </label>
+    </div>
+
+    <button class="button" type="submit">Submit exam</button>
+</form>
+</body>
+</html>
